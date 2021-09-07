@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "version": 1,
+    "disable_limits": false
+  },
+  "nodes": [
+    {
+      "node_id": "f258a736-1c73-41fe-a382-a9d6dbcc4da2",
+      "type": "SOURCE",
+      "operator": "sagemaker.s3_source_0.1",
+      "parameters": {
+        "dataset_definition": {
+          "__typename": "S3CreateDatasetDefinitionOutput",
+          "datasetSourceType": "S3",
+          "name": "orders.csv",
+          "description": null,
+          "s3ExecutionContext": {
+            "__typename": "S3ExecutionContext",
+            "s3Uri": "s3://sagemaker-us-west-2-355837733978/sagemaker-feature-store/fscw/data/orders.csv",
+            "s3ContentType": "csv",
+            "s3HasHeader": true
+          }
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "default",
+          "sampling": {
+            "sampling_method": "sample_by_limit",
+            "limit_rows": 50000
+          }
+        }
+      ]
+    },
+    {
+      "node_id": "b7123f8d-533d-42b0-8ea1-3f5f46c37abf",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.infer_and_cast_type_0.1",
+      "parameters": {},
+      "trained_parameters": {
+        "schema": {
+          "order_id": "string",
+          "customer_id": "string",
+          "product_id": "string",
+          "purchase_amount": "float",
+          "is_reordered": "bool",
+          "purchased_on": "string",
+          "event_time": "string"
+        }
+      },
+      "inputs": [
+        {
+          "name": "default",
+          "node_id": "f258a736-1c73-41fe-a382-a9d6dbcc4da2",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "739f8413-3a63-42c3-99a0-fa678a68c2d6",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.cast_single_data_type_0.1",
+      "parameters": {
+        "column": "is_reordered",
+        "original_data_type": "Boolean",
+        "data_type": "long"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "b7123f8d-533d-42b0-8ea1-3f5f46c37abf",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    }
+  ]
+}
