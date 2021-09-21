@@ -9,5 +9,5 @@
 * Delete a feature group
 
 ### Notebooks:
-* 0_prepare_datasets.ipynb (Optional to RUN)
+* 0_prepare_datasets.ipynb 
 * 1_introduction_to_feature_store.ipynb
