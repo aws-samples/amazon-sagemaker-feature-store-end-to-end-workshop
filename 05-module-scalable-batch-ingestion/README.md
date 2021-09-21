@@ -1,4 +1,4 @@
-## SageMaker Feature Store Champions Workshop - Module 4
+## SageMaker Feature Store Champions Workshop - Module 5
 
 ### Scalable batch ingestion using distributed processing
 
