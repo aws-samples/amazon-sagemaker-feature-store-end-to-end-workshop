@@ -91,11 +91,8 @@ def create_fg_snapshot_ctas(fg_name, verbose):
     fg_file_name = f'sagemaker-feature-store/{account_id}/sagemaker/{region}/offline-store/{table_name_source}'
     fg_unique_id = fg.describe()['RecordIdentifierFeatureName']
 
-    #print(s3_uri)
-    #print(fg_file_name)
-    if verbose:
-        print(f"Feature Group S3 URL: {fg_s3_url}")
-        print(f"Feature Group Table Name: {table_name_source}")
+    print(f"Feature Group S3 URL: {fg_s3_url}")
+    print(f"Feature Group Table Name: {table_name_source}")
     
     table_name_target = f'{table_name_source}{ctas_table_suffix}'
 
@@ -120,7 +117,7 @@ def create_fg_snapshot_ctas(fg_name, verbose):
         print(conn.fetchall())
         print("Total execution time in millis: ", conn.total_execution_time_in_millis)
         print("Total data scanned in bytes: ", conn.data_scanned_in_bytes)
-        print (f"Table created successfully: {table_name_target}")
+    print (f"CTAS table created successfully: {table_name_target}")
     
     return table_name_target
 
@@ -141,7 +138,7 @@ def get_s3_uri_from_athena_table(database, table):
     
     
 # Utility function to create an AWS Glue Crawler - to be used to crawl the snapshot table
-def create_crawler(database, table):
+def create_crawler(database, table, verbose):
     #Creation of the Crawler
     glue_crawler_name = f'{table}-crawler'
     glue_database_name = database
@@ -157,7 +154,8 @@ def create_crawler(database, table):
     available_crawlers = response["CrawlerNames"]
 
     for crawler_name in available_crawlers:
-        print(crawler_name)
+        if verbose:
+            print(crawler_name)
         #response = client.get_crawler(Name=crawler_name)
         if crawler_name == glue_crawler_name:
             response = client.get_crawler(Name=crawler_name)
@@ -190,7 +188,7 @@ def create_crawler(database, table):
 
 
 # Utility function to start the AWS Crawler
-def run_crawler(crawler: str, *, timeout_minutes: int = 120, retry_seconds: int = 5) -> None:
+def run_crawler(crawler: str, verbose: bool, *, timeout_minutes: int = 120, retry_seconds: int = 5) -> None:
     """Run the specified AWS Glue crawler, waiting until completion."""
     # Ref: https://stackoverflow.com/a/66072347/
     timeout_seconds = timeout_minutes * 60
@@ -198,30 +196,38 @@ def run_crawler(crawler: str, *, timeout_minutes: int = 120, retry_seconds: int 
     start_time = timeit.default_timer()
     abort_time = start_time + timeout_seconds
 
-    def wait_until_ready() -> None:
-        state_previous = None
-        print(f'state_previous:= {state_previous}')
+    def wait_until_ready(verbose: bool) -> None:
+        state_previous = None        
+        if verbose:
+            print(f'state_previous:= {state_previous}')
         while True:
             response_get = client.get_crawler(Name=crawler)
             state = response_get["Crawler"]["State"]
-            print(f'current state= {state}')
+            if verbose:
+                print(f'current state= {state}')
+            else:
+                print(".", end = '')
             if state != state_previous:
                 log.info(f"Crawler {crawler} is {state.lower()}.")
                 state_previous = state
             if state == "READY":  # Other known states: RUNNING, STOPPING
+                print("!\n")
                 return
             if timeit.default_timer() > abort_time:
                 raise TimeoutError(f"Failed to crawl {crawler}. The allocated time of {timeout_minutes:,} minutes has elapsed.")
             time.sleep(retry_seconds)
 
-    wait_until_ready()
+    #wait_until_ready(verbose)
+    print(f"Start crawling {crawler}.")
     response_start = client.start_crawler(Name=crawler)
     assert response_start["ResponseMetadata"]["HTTPStatusCode"] == 200
-    log.info(f"Crawling {crawler}.")
-    print(f"Crawling {crawler}.")
-    wait_until_ready()
-    log.info(f"Crawled {crawler}.")
-    print(f"Crawled {crawler}.")
+    if verbose:
+        log.info(f"Crawling {crawler}.")
+        print(f"Crawling {crawler}.")
+    wait_until_ready(verbose)
+    if verbose:
+        log.info(f"Crawled {crawler}.")
+        print(f"Crawled {crawler}.")
 
 
 # Utility function to delete the AWS Glue Crawler
@@ -311,7 +317,8 @@ def create_databrew_dataset_from_glue_table(fg_name, table_name, glue_databrew_r
         #response = client.get_crawler(Name=crawler_name)
         if dataset["Name"] == databrew_dataset_name:
             #response = client.get_dataset(Name=crawler_name)
-            print(dataset)
+            if verbose:
+                print(dataset)
             return dataset, databrew_dataset_name
 
     response = databrew.create_dataset(
@@ -330,8 +337,8 @@ def create_databrew_dataset_from_glue_table(fg_name, table_name, glue_databrew_r
     )
            
     if verbose:
-        print(databrew_dataset_name)
         print(f'Dataset Created:{response}')
+    print("DataBrew Dataset Created: ", databrew_dataset_name)
         
         
 # Utility function to wait until job execution ends 
@@ -431,7 +438,7 @@ def feature_databrew_profile(fg_name, results_bucket, results_key, verbose=True)
         }
     )
         
-    print(f'AWS Glue DataBrew Job Created: {create_response["Name"]}')
+    print(f'AWS Glue DataBrew Profile Job Created: {create_response["Name"]}')
 
     return create_response
               
@@ -597,17 +604,18 @@ def feature_monitoring_prep(fg_name, results_bucket, results_key, verbose = True
     
     snapshot_table = table_name_ctas
     # Create AWS glue crawler (if not exist already)
-    response_crawler=create_crawler(fs_database, snapshot_table)
-    print(response_crawler)
+    response_crawler=create_crawler(fs_database, snapshot_table, verbose)
+    if verbose:
+        print(response_crawler)
     
     # Run the AWS Glue Crawler
-    response_run=run_crawler(response_crawler[1])
+    response_run=run_crawler(response_crawler[1], verbose)
     
     #Create AWS DataBrew Dataset
-    dataset_response=create_databrew_dataset_from_glue_table(fg_name, snapshot_table, results_bucket, results_key)
+    dataset_response=create_databrew_dataset_from_glue_table(fg_name, snapshot_table, results_bucket, results_key, verbose)
     
     #Create AWS DataBrew Profile Job
-    profile_response = feature_databrew_profile(fg_name, results_bucket, results_key)    
+    profile_response = feature_databrew_profile(fg_name, results_bucket, results_key, verbose)    
 
     return snapshot_table, response_crawler, response_run, dataset_response, profile_response
 
@@ -683,7 +691,7 @@ def ingest_rows_fg(fg_name, csv_path, nbrows=1000):
     fg_df['customer_id'] = fg_df['customer_id'].astype('string')
     fg_df['product_id'] = fg_df['product_id'].astype('string')
     fg_df['event_time'] = fg_df['event_time'].astype('string')
-
+    
     # Change IDs
     fg_total_record_count = Utils.get_historical_record_count(fg_name)
     id_lst = []
@@ -706,8 +714,8 @@ def ingest_rows_fg(fg_name, csv_path, nbrows=1000):
     for i in range(30):
         print(".", end = '')
         time.sleep(10)
-    print("!")    
-    
+    print("!")
+
     
 # Utility function to clean up resources from the lab module
 def feature_monitoring_cleanup(fg_name, folder_name):
