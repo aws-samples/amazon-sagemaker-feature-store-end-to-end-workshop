@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 from sagemaker.feature_store.feature_group import FeatureGroup
 from sagemaker import get_execution_role
 import sagemaker
