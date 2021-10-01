@@ -34,3 +34,6 @@
 * **Module 6: Automate feature engineering pipelines with Amazon SageMaker**
     * **Topics:**
        * Leverage Amazon SageMaker Data Wrangler, Amazon SageMaker Feature Store, and Amazon SageMaker Pipelines alongside AWS Lambda to automate feature transformation.
+* **Module 8: Create, Delete and Query ML Lineage with Amazon SageMaker**
+    * **Topics:**
+       * Query ML Lineage by SageMaker Model, Find feature groups from Endpoint or Model, Given a data source's S3 URI or Artifact ARN, you can find associated SageMaker Feature Groups, etc.
