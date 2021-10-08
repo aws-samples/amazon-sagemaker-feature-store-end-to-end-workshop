@@ -459,9 +459,11 @@ def feature_monitoring_run(fg_name, verbose=True):
     databrew_dataset_name = f'{fg_name}{databrew_dataset_suffix}'
     databrew_profilejob_name = f'{fg_name}{databrew_profilejob_suffix}'
 
-    # Check if the CTAS table does not exists, then create it
-    if not checkTableExists(table_name_ctas):
-        snapshot_table = create_fg_snapshot_ctas(fg_name, verbose)
+    # Check if the CTAS table exists, then delete it
+    if checkTableExists(table_name_ctas):        
+        delete_fg_snapshot_ctas(fg_name, verbose)
+    # Create the CTAS table
+    snapshot_table = create_fg_snapshot_ctas(fg_name, verbose)
     
     print("Running DataBrew Profiling Job")
     #
@@ -500,9 +502,6 @@ def feature_monitoring_run(fg_name, verbose=True):
     # Add tags to the FG
     feature_add_tag(fg_name, fg_profileurl_tag, Utils._escape_tag_chars(databrew_profile_console_url))
     feature_add_tag(fg_name, fg_profiles3link_tag, output_s3_file_url)
-    
-    # Delete the CTAS table after the generation of the report
-    delete_fg_snapshot_ctas(fg_name, verbose)
     
     return brew_results_bucket, brew_results_key, databrew_profile_console_url, report_data, output_s3_file_url
 
