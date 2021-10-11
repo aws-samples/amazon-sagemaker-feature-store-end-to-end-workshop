@@ -4,7 +4,7 @@
 * Executing Feature Monitoring
 * Simulate Feature Drift
 * Extract statistics from profile job execution and persist to S3
-* Visualisation of the feature group statistics
+* Visualization of the feature group statistics and feature drift
 * Cleanup resources
 
 ### Notebooks:
