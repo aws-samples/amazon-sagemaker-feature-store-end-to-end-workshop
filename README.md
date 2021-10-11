@@ -35,7 +35,7 @@
     * **Topics:**
        * Leverage Amazon SageMaker Data Wrangler, Amazon SageMaker Feature Store, and Amazon SageMaker Pipelines alongside AWS Lambda to automate feature transformation.
 
-* **Module 7 : Feature Monitoring**
+* **Module 7: Feature Monitoring**
     * **Topics:**
        * Feature Group Monitoring Preparation, DataBrew Dataset Creation
        * Run Feature Group Monitoring using DataBrew Profile Job
