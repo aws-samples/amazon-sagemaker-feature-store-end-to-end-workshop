@@ -93,6 +93,7 @@ def create_fg_snapshot_ctas(fg_name, verbose):
     fg_s3_url = f'{s3_uri}/{account_id}/sagemaker/{region}/offline-store/{table_name_source}'
     fg_file_name = f'sagemaker-feature-store/{account_id}/sagemaker/{region}/offline-store/{table_name_source}'
     fg_unique_id = fg.describe()['RecordIdentifierFeatureName']
+    fg_event_time = fg.describe()['EventTimeFeatureName']    
 
     print(f"Feature Group S3 URL: {fg_s3_url}")
     print(f"Feature Group Table Name: {table_name_source}")
@@ -106,7 +107,7 @@ def create_fg_snapshot_ctas(fg_name, verbose):
                 f' SELECT * ' \
                 f' FROM (SELECT *, row_number() ' \
                 f'      OVER (PARTITION BY {fg_unique_id} ' \
-                f'      ORDER BY  event_time desc, api_invocation_time DESC, write_time DESC) AS row_num ' \
+                f'      ORDER BY {fg_event_time} desc, api_invocation_time DESC, write_time DESC) AS row_num ' \
                 f'      FROM {source_table}) ' \
                 f' WHERE row_num = 1 and NOT is_deleted '
 
@@ -685,14 +686,15 @@ def consolidate_monitor_reports(fg_name, results_bucket, results_key, date):
 def ingest_rows_fg(fg_name, csv_path, nbrows=1000):
     fg = FeatureGroup(name=fg_name, sagemaker_session=feature_store_session)
     fg_unique_id = fg.describe()['RecordIdentifierFeatureName']
+    fg_event_time = fg.describe()['EventTimeFeatureName']    
     
     # Read records from the csv file 
     fg_df = pd.read_csv(csv_path, nrows = nbrows)
     # Do some type conversions
-    fg_df['order_id'] = fg_df['order_id'].astype('string')
+    fg_df[fg_unique_id] = fg_df[fg_unique_id].astype('string')
     fg_df['customer_id'] = fg_df['customer_id'].astype('string')
     fg_df['product_id'] = fg_df['product_id'].astype('string')
-    fg_df['event_time'] = fg_df['event_time'].astype('string')
+    fg_df[fg_event_time] = fg_df[fg_event_time].astype('string')
     
     # Change IDs
     fg_total_record_count = Utils.get_historical_record_count(fg_name)
