@@ -31,6 +31,22 @@
         * Batch ingestion via SageMaker Processing job
         * Batch ingestion via SageMaker Processing PySpark job
         * SageMaker Data Wrangler export job to feature store
+		
 * **Module 6: Automate feature engineering pipelines with Amazon SageMaker**
     * **Topics:**
        * Leverage Amazon SageMaker Data Wrangler, Amazon SageMaker Feature Store, and Amazon SageMaker Pipelines alongside AWS Lambda to automate feature transformation.
+
+* **Module 7: Feature Monitoring**
+    * **Topics:**
+       * Feature Group Monitoring Preparation, DataBrew Dataset Creation
+       * Run Feature Group Monitoring using DataBrew Profile Job
+       * Visualization of Feature Group Statistics and Feature Drift
+	   
+* **Module 8: Create, Delete and Query ML Lineage Tracking with Amazon SageMaker**
+    * **Topics:**
+		* Create/Delete ML Lineage.
+		* Query ML Lineage by SageMaker Model Name or SageMaker Inference Endpoint
+		* Given a SageMaker Model name or artifact ARN, you can find associated Feature Groups
+		* Given a Feature Group ARN, and find associated SageMaker Models
+		* Given a data source's S3 URI or Artifact ARN, you can find associated SageMaker Feature Groups
+		* Given a Feature Group ARN, and find associated data sources
