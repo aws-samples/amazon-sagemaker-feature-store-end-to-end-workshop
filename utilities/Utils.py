@@ -89,11 +89,15 @@ def _df_to_feature_defs(df):
 def _escape_tag_chars(in_str):
     escaped_str = in_str.replace('$', '_D_')
     escaped_str = escaped_str.replace('?', '_Q_')
+    escaped_str = escaped_str.replace('&', '_A_')
+    escaped_str = escaped_str.replace('#', '_H_')
     return escaped_str
 
 def _unescape_tag_chars(in_str):
     unescaped_str = in_str.replace('_D_', '$')
     unescaped_str = unescaped_str.replace('_Q_', '?')
+    unescaped_str = unescaped_str.replace('_A_', '&')    
+    unescaped_str = unescaped_str.replace('_H_', '#')
     return unescaped_str
 
 def create_fg_from_df(fg_name, df, id_name='Id', event_time_name='UpdateTime', tags=None,
