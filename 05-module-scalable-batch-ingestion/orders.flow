@@ -45,9 +45,8 @@
           "product_id": "string",
           "purchase_amount": "float",
           "is_reordered": "bool",
-          "purchased_on": "string",
-          "event_time": "string"
-        }
+          "event_time": "string",
+          "n_days_since_last_purchase": "float"        }
       },
       "inputs": [
         {
