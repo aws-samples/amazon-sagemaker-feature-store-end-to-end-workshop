@@ -8,6 +8,7 @@ import time
 import json
 import uuid
 import pandas as pd
+import numpy as np
 import os
 from typing import List, Dict, Union, Tuple
 
@@ -24,6 +25,8 @@ from sagemaker.workflow.steps import ProcessingStep
 from sagemaker.spark.processing import PySparkProcessor
 from sagemaker.sklearn.processing import SKLearnProcessor
 from sagemaker.workflow.pipeline import Pipeline
+
+TEMP_TIME_TRAVEL_ID_NAME = 'TEMP_TIME_TRAVEL_ID'
 
 class FeatureStore:
     """Provides an easy to use wrapper for Amazon SageMaker Feature Store.
@@ -890,7 +893,7 @@ class FeatureStore:
             _feature_number = 0
 
             if _fn == '*':
-                _all_core_features = _get_core_features(_fg)
+                _all_core_features = self._get_core_features(_fg)
                 for _core_feature in _all_core_features:
                     _groups_and_features.append([_fg, _core_feature, _fg_number, _feature_number])
                     _feature_number += 1
@@ -1238,6 +1241,10 @@ class FeatureStore:
 
         _exclude_list = [_id_feature_name, _time_feature_name, events_timestamp_col]
         _cleaned_list = [ x for x in _col_list if not x in _exclude_list ]
+        
+        # de-duplicate the list, as a feature group wildcard may have pulled in some keys
+        # that are also in the event dataframe.
+        _cleaned_list = list(dict.fromkeys(_cleaned_list))
 
         _col_string = ','.join(_cleaned_list)
         return _col_string
@@ -1280,6 +1287,11 @@ class FeatureStore:
 
         self._run_query(_create_string, _tmp_uri, _database, verbose=verbose)
         return _create_string
+    
+    def _qualify_cols(self, letter, col_list_string):
+        _cols = col_list_string.split(',')
+        _qual_col_list_string = f', {letter}.'.join(_cols)
+        return f'{letter}.' + _qual_col_list_string
 
     def _row_level_time_travel(self, events_df: pd.DataFrame, fg_name: str, 
                                events_table_name: str, events_timestamp_col: str, 
@@ -1293,11 +1305,16 @@ class FeatureStore:
         _feat_defs = _fg_desc['FeatureDefinitions']
 
         _other_cols = self._get_other_cols(events_df, events_timestamp_col, _fg_desc, features)
+        
+        
         if verbose:
             print(f'fg: {fg_name}, features: {features}, _other_cols: {_other_cols}')
 
-        _sub_query = f'select f.{_id_feature_name}, {_other_cols}, ' +\
-                     f'{events_timestamp_col}, {_time_feature_name}, is_deleted, write_time, row_number() ' +\
+        _f_cols = self._qualify_cols('f', _other_cols)
+        _t_cols = self._qualify_cols('t', _other_cols)
+        
+        _sub_query = f'select f.{_id_feature_name}, {_f_cols}, ' +\
+                     f'{events_timestamp_col}, {_time_feature_name}, e.{TEMP_TIME_TRAVEL_ID_NAME}, is_deleted, write_time, row_number() ' +\
                      f'over (partition by f.{_id_feature_name}, {events_timestamp_col} ' +\
                      f'order by {_time_feature_name} desc, write_time desc) as row_number ' +\
                      f'from "{fg_table_name}" f, "{events_table_name}" e ' +\
@@ -1309,10 +1326,11 @@ class FeatureStore:
                          f'from ({_sub_query}) ' +\
                          'where row_number = 1 and NOT is_deleted ' +\
                          f'order by {_id_feature_name} desc, {events_timestamp_col} desc, {_time_feature_name} desc) ' +\
-                         f'select e.{events_timestamp_col}, e.{_id_feature_name}, {_other_cols} ' +\
+                         f'select e.{events_timestamp_col}, e.{_id_feature_name}, {_t_cols}, e.{TEMP_TIME_TRAVEL_ID_NAME} ' +\
                          f'from "{events_table_name}" e left outer join temp t ' +\
                          f'on e.{events_timestamp_col} = t.{events_timestamp_col} and ' +\
-                         f'e.{_id_feature_name} = t.{_id_feature_name}'
+                         f'e.{_id_feature_name} = t.{_id_feature_name} ' +\
+                         f'order by e.{TEMP_TIME_TRAVEL_ID_NAME} asc'
 
         _database = 'sagemaker_featurestore'
         _s3_uri = f's3://{self._default_bucket}/offline-store'
@@ -1382,8 +1400,9 @@ class FeatureStore:
         _csv_uri = f's3://{self._default_bucket}/{_obj_name}'
 
         if verbose:
-            print('\nUploading events as a csv file to be used as a temp table...')
+            print(f'\nUploading events as a csv file to be used as a temp table...\n{_csv_uri}')
 
+        events_df[TEMP_TIME_TRAVEL_ID_NAME] = np.arange(len(events_df))
         events_df.to_csv(_csv_uri, index=False, header=None)
 
         if verbose:
@@ -1405,9 +1424,14 @@ class FeatureStore:
         _feature_columns = [c.lower() for c in _features_df['feature_name'].values]
         _final_columns = events_df.columns.tolist()
         _final_columns.extend(_feature_columns)
+        
+        # de-duplicate the list, as a feature group wildcard may have pulled in some keys
+        # that are also in the event dataframe.
+        _final_columns = list(dict.fromkeys(_final_columns))
+        
         if verbose:
             print(f'  feature columns: {_feature_columns}')
-            print(f'  event df columns: {df.columns.tolist()}')
+            print(f'  event df columns: {events_df.columns.tolist()}')
             print(f'  final columns: {_final_columns}')
 
         _gb = _features_df.groupby('fg_name')
@@ -1432,7 +1456,7 @@ class FeatureStore:
                               _curr_features, _offlinestore_table, verbose])
 
         if verbose:
-            print(f'\nParallel time travel requests list:\n{_requests}')
+            print(f'\nTime travel requests list:\n{_requests}')
 
         # perform row-level time travel for each feature group in parallel or in series
 
@@ -1452,21 +1476,30 @@ class FeatureStore:
         
         _which_return = 0
         for _curr_results_df in _return_data:
+            # ensure each set of results is sorted exactly the same way, using the temp ID
+            # row number column we added to the events dataframe at the start
+            _curr_results_df.sort_values(by=[TEMP_TIME_TRAVEL_ID_NAME], ascending=True, inplace=True)
+            
             if verbose:
                 if _curr_results_df is None:
                     print(f'Got back None from row level time travel for {_which_return} query')
                 else:
+                    print(f'\nGot back these results for query {_which_return}')
                     print(_curr_results_df.head())
 
-            # drop the event time and ID columns, just focus on the features
+            # drop the event time and ID columns, and the tmp ID, just focus on the features
             _curr_results_df = _curr_results_df.drop([_curr_results_df.columns[0],
-                                                      _curr_results_df.columns[1]], axis=1)
+                                                      _curr_results_df.columns[1],
+                                                      TEMP_TIME_TRAVEL_ID_NAME], axis=1)
             if _cumulative_features_df is None:
                 _cumulative_features_df = _curr_results_df.copy()
             else:                
                 # now append the remaining current result columns at the end of the cumulative columns
                 _cumulative_features_df = pd.concat([_cumulative_features_df, 
                                                      _curr_results_df], axis=1)
+                if verbose:
+                    print(f'Cumulative results:')
+                    print(_cumulative_features_df.head())
 
             _which_return += 1
 
@@ -1480,16 +1513,23 @@ class FeatureStore:
                 print(f'drop_temp returned {_drop_df.head()}')
 
         # Clean up the temporary CSV from S3
+        # TODO: Athena seems to leave a .txt file hanging around as well, should delete that
         if verbose:
-            print('deleting the temp csv from s3')
+            print(f'deleting the temp csv from s3: {_obj_name}')
         _s3 = boto3.resource('s3')
         _obj = _s3.Object(self._default_bucket, _obj_name)
         _obj.delete()
         
+        # drop the tmp ID
+        events_df = events_df.drop(TEMP_TIME_TRAVEL_ID_NAME, axis=1)
+
         # Ensure that the final dataframe columns and column order matches the request.
         _final_df = pd.concat([events_df, _cumulative_features_df], axis=1)
+        _final_columns.remove(TEMP_TIME_TRAVEL_ID_NAME)
+        
         if verbose:
             print(f'  final df columns before reorder: {_final_df.columns.tolist()}')
+            print(f'  final column names in order: {_final_columns}')
         return _final_df[_final_columns]
 
     def get_historical_offline_feature_values(self, fg_name: str, 
