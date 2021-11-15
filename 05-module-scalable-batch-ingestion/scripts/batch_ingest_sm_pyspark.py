@@ -23,7 +23,8 @@ def transform_row(row) -> list:
     record = []
     for column in columns:
         feature = {'FeatureName': column, 'ValueAsString': str(row[column])}
-        record.append(feature)
+        if str(row[column]) not in ['NaN', 'NA', 'None', 'nan', 'none']:
+            record.append(feature)
     return record
 
 
