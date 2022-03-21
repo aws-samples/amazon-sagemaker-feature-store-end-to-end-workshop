@@ -25,10 +25,10 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
         * Athena query for dataset extraction (programmatically using SageMaker SDK)
         * Extract a training dataset and storing in S3
         
-* **Module 3: Training a model using extracted dataset from the Offline feature store**
+* **Module 3: Model training and batch scroing using extracted dataset from the Offline feature store**
     * **Topics:**
         * Training a model using feature sets derived from the Offline feature store
-        * Deploying the trained model for real-time inference
+        * Perform batch scoring using feature sets derived from Offline feature store in CSV and Parquet format
         
 * **Module 4: Leveraging the Online feature store**
     * **Topics:**
