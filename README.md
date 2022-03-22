@@ -60,3 +60,7 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
 		* Given a data source's S3 URI or Artifact ARN, you can find associated SageMaker Feature Groups
 		* Given a Feature Group ARN, and find associated data sources
 
+* **Module 9: Feature Security**
+    * **Topics:**
+       * Setup of granular access control to Offline Feature Store using AWS Lake Formation
+       * Testing of the access control using SageMaker Feature Store SDK
