@@ -4,7 +4,9 @@ In this module, we provide an approach of how to implement granular access contr
 
 * Setup of granular access control to Offline Feature Store using AWS Lake Formation
 * Testing of the access control using SageMaker Studio
+* Clean up the access control in Lake Formation
 
 ### Notebooks:
 * m9_nb0_row_cell_level_access_lf_setup.ipynb
 * m9_nb1_row_cell_level_access_test.ipynb
+* m9_nb2_row_cell_level_access_clean_up.ipynb
