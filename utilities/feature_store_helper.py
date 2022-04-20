@@ -1,3 +1,4 @@
+
 # Copyright 2021 Amazon.com and its affiliates; all rights reserved. 
 # This file is AWS Content and may not be duplicated or distributed without permission
 """This module contains helper methods related to Amazon SageMaker Feature Store"""
@@ -304,7 +305,7 @@ class FeatureStore:
             instance_count (int): Optional, number of instances to use for the processing job.
             max_processes (int): Optional, max number of processes to use for feature ingestion.
             max_workers (int): Optional, max number of workers to use in each process.
-            max_runtime_in_seconds (int): Optional, max number of seconds permitted for this processing job to run, defaults to one hour.
+            max_runtime_in_seconds (int): Optional, max seconds job is allowed to run, defaults to one hour.
         """
 
         self._create_script(self._pipeline_script_tmp_name, user_defined_script, script_type)
@@ -445,7 +446,7 @@ class FeatureStore:
             instance_count (int): Optional, number of instances to use for the processing job.
             max_processes (int): Optional, max number of processes to use for feature ingestion.
             max_workers (int): Optional, max number of workers to use in each process.
-            max_runtime_in_seconds (int): Optional, max number of seconds permitted for this processing job to run, defaults to one hour.
+            max_runtime_in_seconds (int): Optional, max seconds job is allowed to run, defaults to one hour.
         """
 
         self._create_script(self._pipeline_script_tmp_name, user_defined_script, script_type)
@@ -800,7 +801,7 @@ class FeatureStore:
         Args:
             fg_name (str): Name of the feature group from which to delete the record.
             record_id (Union[str,int]): Identifier of record to delete. Can be int or str record identifier.
-            event_time (Union[str,int]): Event time in ISO 8601 format, identifying the event time timestamp of the record to delete.
+            event_time (Union[str,int]): Event time in ISO 8601 format, timestamp of the record to delete.
         """
         
         # TODO: test with int-based event time
@@ -828,7 +829,8 @@ class FeatureStore:
 
         return tmp_dict
 
-    def get_latest_feature_values(self, fg_name: str, identifiers: List[Union[str,int]], features: List[str]=None) -> Dict[str, Union[str, int, float]]:
+    def get_latest_feature_values(self, fg_name: str, identifiers: List[Union[str,int]], 
+                                  features: List[str]=None) -> Dict[str, Union[str, int, float]]:
         """Retrieves a set of features of identified records from the online store.
         
         Convenience wrapper on top of GetRecord API to allow record identifiers to be passed as either strings
@@ -920,11 +922,10 @@ class FeatureStore:
         
         Args:
             fg_name (str): Name of the feature group from which to retrieve the records.
-            id_dict (Dict[str,Union[str,int]]): Dictionary of record identifiers whose records are to be retrieved, key is the identifier feature
+            id_dict (Dict[str,Union[str,int]]): Dictionary of record identifiers of records to be retrieved, key is the identifier feature
               name (can be different for each feature group), and value is the actual record identifier.
             features (List[str]): List of named features to retrieve. Features are fully-qualified as 'fg-name:feature-name',
               or 'fg-name:*' for all features.
-
         Returns:
             Dict[str, Union[str, int, float]]: Dictionary of named feature values with native Python types
         """
@@ -994,7 +995,7 @@ class FeatureStore:
 
         return _results_dict
 
-    def _run_query(self, query_string: str, tmp_uri: str, database: str, verbose: bool=True) -> pd.DataFrame:
+    def _run_query(self, query_string: str, tmp_uri: str, database: str, verbose: bool=False) -> pd.DataFrame:
         athena = boto3.client('athena')
 
         # submit the Athena query
@@ -1105,8 +1106,18 @@ class FeatureStore:
         _event_time = self.describe_feature_group(fg_name)['EventTimeFeatureName']
 
         _query_string = f'SELECT min(write_time) as min_write_time, max(write_time) as max_write_time, ' +\
-                        f'min({_event_time}) as min_event_time, max({_event_time}) as max_event_time FROM "' +_table+ f'"'
+                        f'min({_event_time}) as min_event_time, max({_event_time}) as max_event_time ' +\
+                        f'FROM "' +_table+ f'"'
         _tmp_df = self._run_query(_query_string, _tmp_uri, _database, verbose=False)
+        return _tmp_df
+
+    def query(self, fg_names: str, query: str, s3_tmp_uri=None):
+        _query_string = query
+        for _fg_name in fg_names:
+            _table, _database, _tmp_uri = self._get_offline_details(_fg_name, s3_tmp_uri)
+            _query_string = _query_string.replace(_fg_name, _table)
+
+        _tmp_df = self._run_query(_query_string, _tmp_uri, _database)
         return _tmp_df
 
     def get_historical_record_count(self, fg_name: str, s3_tmp_uri: str=None) -> int:
@@ -1290,7 +1301,7 @@ class FeatureStore:
     
     def _qualify_cols(self, letter, col_list_string):
         _cols = col_list_string.split(',')
-        _qual_col_list_string = f', {letter}.'.join(_cols)
+        _qual_col_list_string = f', {letter}.'.join(_cols).lower()
         return f'{letter}.' + _qual_col_list_string
 
     def _row_level_time_travel(self, events_df: pd.DataFrame, fg_name: str, 
@@ -1314,22 +1325,25 @@ class FeatureStore:
         _t_cols = self._qualify_cols('t', _other_cols)
         
         _sub_query = f'select f.{_id_feature_name}, {_f_cols}, ' +\
-                     f'{events_timestamp_col}, {_time_feature_name}, e.{TEMP_TIME_TRAVEL_ID_NAME}, is_deleted, write_time, row_number() ' +\
-                     f'over (partition by f.{_id_feature_name}, {events_timestamp_col} ' +\
-                     f'order by {_time_feature_name} desc, write_time desc) as row_number ' +\
+                     f'e.{events_timestamp_col} as e_event_time, ' +\
+                     f'f.{_time_feature_name} as f_event_time, ' +\
+                     f'e.{TEMP_TIME_TRAVEL_ID_NAME}, is_deleted, write_time, row_number() ' +\
+                     f'over (partition by e.{TEMP_TIME_TRAVEL_ID_NAME} ' +\
+                     f'order by f.{_time_feature_name} desc, write_time desc) as row_number ' +\
                      f'from "{fg_table_name}" f, "{events_table_name}" e ' +\
-                     f'where {_time_feature_name} < {events_timestamp_col} ' +\
+                     f'where f.{_time_feature_name} <= e.{events_timestamp_col} ' +\
                      f'and f.{_id_feature_name} = e.{_id_feature_name}'
 
-        _travel_string = f'with temp as (select {_id_feature_name}, {_other_cols}, {events_timestamp_col},' +\
-                         f' {_time_feature_name}, write_time ' +\
+        _travel_string = f'with temp as (select {_id_feature_name}, {_other_cols}, ' +\
+                         f'  e_event_time, f_event_time, write_time, {TEMP_TIME_TRAVEL_ID_NAME} ' +\
                          f'from ({_sub_query}) ' +\
-                         'where row_number = 1 and NOT is_deleted ' +\
-                         f'order by {_id_feature_name} desc, {events_timestamp_col} desc, {_time_feature_name} desc) ' +\
-                         f'select e.{events_timestamp_col}, e.{_id_feature_name}, {_t_cols}, e.{TEMP_TIME_TRAVEL_ID_NAME} ' +\
+                         'where row_number = 1 and NOT is_deleted) ' +\
+                         f'select e.{events_timestamp_col}, e.{_id_feature_name}, ' +\
+                         f'  {_t_cols}, e.{TEMP_TIME_TRAVEL_ID_NAME} ' +\
                          f'from "{events_table_name}" e left outer join temp t ' +\
-                         f'on e.{events_timestamp_col} = t.{events_timestamp_col} and ' +\
-                         f'e.{_id_feature_name} = t.{_id_feature_name} ' +\
+                         f'on e.{events_timestamp_col} = t.e_event_time and ' +\
+                         f'e.{_id_feature_name} = t.{_id_feature_name} and ' +\
+                         f'e.{TEMP_TIME_TRAVEL_ID_NAME} = t.{TEMP_TIME_TRAVEL_ID_NAME} ' +\
                          f'order by e.{TEMP_TIME_TRAVEL_ID_NAME} asc'
 
         _database = 'sagemaker_featurestore'
@@ -1357,7 +1371,8 @@ class FeatureStore:
                      timestamp_col: str, 
                      features: List[str], 
                      parallel: bool=True, 
-                     verbose: bool=False) -> pd.DataFrame:
+                     verbose: bool=False,
+                     keep_temp: bool=False) -> pd.DataFrame:
         """Performs row-level time travel, returning a point-in-time accurate dataset.
         
         This convenience method lets the caller specify a "feature set" to be retrieved, with feature values
@@ -1384,7 +1399,6 @@ class FeatureStore:
               or 'fg-name:*' for all features.
             parallel (bool): Whether to perform subsets of the time travel in parallel. This saves time, but there are cases where parallel execution will fail.
             verbose (bool): Whether to print out details of the execution along the way.
-
         Returns:
             pd.DataFrame: Dataframe containing the event time stamp, the record identifiers, followed by the features
               requested in the feature set
@@ -1397,13 +1411,20 @@ class FeatureStore:
         _tmp_prefix = int(f'{time.time():<19}'.replace(' ', '0')[:18].replace('.', '')) 
 
         _obj_name = f'{_base_tmp_prefix}/{_tmp_prefix}/{_tmp_prefix}.csv'
+        _local_filename = f'{_tmp_prefix}.csv'
         _csv_uri = f's3://{self._default_bucket}/{_obj_name}'
 
         if verbose:
             print(f'\nUploading events as a csv file to be used as a temp table...\n{_csv_uri}')
 
         events_df[TEMP_TIME_TRAVEL_ID_NAME] = np.arange(len(events_df))
-        events_df.to_csv(_csv_uri, index=False, header=None)
+#         events_df.to_csv(_csv_uri, index=False, header=None)
+
+        # to avoid pandas and boto package version conflict that causes direct s3 save to fail,
+        # save the file locally and then use s3 upload to move the file to s3
+        events_df.to_csv(_local_filename, index=False, header=None)
+        s3_client = boto3.client('s3')
+        s3_client.upload_file(_local_filename, self._default_bucket, _obj_name)
 
         if verbose:
             print('...upload completed')
@@ -1504,26 +1525,30 @@ class FeatureStore:
             _which_return += 1
 
 
-        # Clean up the temporary Athena table
-        _drop_df = self._drop_temp_table(_events_table_name, verbose=verbose)
-        if verbose:
-            if _drop_df is None:
-                print('drop_temp returned None')
-            else:
-                print(f'drop_temp returned {_drop_df.head()}')
+        if not keep_temp:
+            # Clean up the temporary Athena table
+            _drop_df = self._drop_temp_table(_events_table_name, verbose=verbose)
+            if verbose:
+                if _drop_df is None:
+                    print('drop_temp returned None')
+                else:
+                    print(f'drop_temp returned {_drop_df.head()}')
 
-        # Clean up the temporary CSV from S3
-        # TODO: Athena seems to leave a .txt file hanging around as well, should delete that
-        if verbose:
-            print(f'deleting the temp csv from s3: {_obj_name}')
-        _s3 = boto3.resource('s3')
-        _obj = _s3.Object(self._default_bucket, _obj_name)
-        _obj.delete()
+            # Clean up the temporary CSV from S3
+            # TODO: Athena seems to leave a .txt file hanging around as well, should delete that
+            if verbose:
+                print(f'deleting the temp csv from s3: {_obj_name}')
+            _s3 = boto3.resource('s3')
+            _obj = _s3.Object(self._default_bucket, _obj_name)
+            _obj.delete()
+            
+            # Delete local file with input rows
+            os.remove(_local_filename)
         
-        # drop the tmp ID
+        # drop the tmp ID column, since not needed by caller
         events_df = events_df.drop(TEMP_TIME_TRAVEL_ID_NAME, axis=1)
 
-        # Ensure that the final dataframe columns and column order matches the request.
+        # Ensure that the final dataframe columns and column order matches the requested set of columns.
         _final_df = pd.concat([events_df, _cumulative_features_df], axis=1)
         _final_columns.remove(TEMP_TIME_TRAVEL_ID_NAME)
         
@@ -1548,7 +1573,6 @@ class FeatureStore:
             feature_names (List[str]): List of named features to retrieve.
             s3_uri (str): Location in s3 where temporary files will be stored.
             verbose (bool): Whether to print out details of the execution along the way.
-
         Returns:
             pd.DataFrame: Dataframe containing the exact features requested, or the entire set of features if a feature list was not specified
         """        
@@ -1596,7 +1620,6 @@ class FeatureStore:
             feature_names (List[str]): List of named features to retrieve.
             s3_uri (str): Location in s3 where temporary files will be stored.
             verbose (bool): Whether to print out details of the execution along the way.
-
         Returns:
             pd.DataFrame: Dataframe containing the latest set of records, with the exact features requested, 
               or the entire set of features if a feature list was not specified
@@ -1650,7 +1673,6 @@ class FeatureStore:
             feature_names (List[str]): List of named features to retrieve.
             s3_uri (str): Location in s3 where temporary files will be stored.
             verbose (bool): Whether to print out details of the execution along the way.
-
         Returns:
             pd.DataFrame: Dataframe containing the records that existed as of the specified event time, 
               with the exact features requested, or the entire set of features if a feature list was not specified
