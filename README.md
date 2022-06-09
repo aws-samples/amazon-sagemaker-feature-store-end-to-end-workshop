@@ -2,13 +2,17 @@
 
 ![workshop](./images/workshop.png)
 
-**Please Note**: This repository includes a submodule which must also be cloned for certain notebook examples to run properly. Therefore, you must include the `--recursive` option when running git clone, like this:
+**Please Note**: This repository includes a github submodule (ml-lineage-helper) which must also be cloned for certain notebook examples to run properly. Therefore, you must include the `--recursive` option when running git clone, like this:
 
 ~$ git clone --recursive https://github.com/aws-samples/amazon-sagemaker-feature-store-end-to-end-workshop.git
 
-You should notice these lines of output during the clone operation:
+If you have already cloned the repository and need to pull the submodule code, you can run this command from the top-level directory of the repo:
 
-Submodule 'ml-lineage-helper' (https://github.com/aws-samples/ml-lineage-helper.git) registered for path 'ml-lineage-helper'
+~$ git submodule update --init --recursive
+
+You should notice these lines of output during the clone of the submodule:
+
+Submodule 'ml-lineage-helper' (https://github.com/aws-samples/ml-lineage-helper.git) registered for path 'ml-lineage-helper' 
 Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-to-end-workshop/ml-lineage-helper'...
 
 * **Module 1: Feature Store Foundations**
