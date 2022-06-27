@@ -13,7 +13,7 @@ A set of methods is also provided for creating a form of feature pipeline using 
 ## Usage
 
 ```python
-from sm.feature_store_helper import FeatureStore
+from utilities.feature_store_helper import FeatureStore
 fs = FeatureStore()
 ```
 ## Offline store dataset retrievals
