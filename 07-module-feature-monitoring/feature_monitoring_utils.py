@@ -250,7 +250,7 @@ def delete_crawler(glue_crawler_name):
 # Utility function to delete snapshot table of feature group records 
 def delete_fg_snapshot_ctas(fg_name, verbose, table=""):
     
-    # Retreive FG's table name
+    # Retrieve FG's table name
     fg = FeatureGroup(name=fg_name, sagemaker_session=feature_store_session)
     table_name = fg.describe()['OfflineStoreConfig']['DataCatalogConfig']['TableName']
     database = fg.describe()['OfflineStoreConfig']['DataCatalogConfig']['Database']
