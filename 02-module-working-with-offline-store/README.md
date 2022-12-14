@@ -18,3 +18,12 @@
 #### Notebook:
 * m2_nb2_feature_metadata_search_discovery.ipynb
 
+### Apache Iceberg offline store compaction
+* Create Feature Groups in Iceberg format
+* Offline store compaction using Amazon Athena
+* Offline store compaction using Spark
+* Scheduled compaction
+
+#### Notebook:
+* m2_nb3_offline_iceberg_compaction.ipynb
+
