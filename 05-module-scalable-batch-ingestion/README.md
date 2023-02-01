@@ -4,5 +4,5 @@
 
 * Batch ingestion via SageMaker processing job
 * Batch ingestion via SageMaker processing PySpark job
-* Batch ingestion via SageMaker processing PySpark job and the Spark Feature Store Manager
+* Offline Batch ingestion via SageMaker Processing job using Feature Store Spark Connector
 * SageMaker Data Wrangler export job to FS
