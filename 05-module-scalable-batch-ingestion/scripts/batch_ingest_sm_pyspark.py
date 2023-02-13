@@ -1,5 +1,5 @@
 from pyspark.ml.feature import VectorAssembler, StringIndexer, MinMaxScaler
-from feature_store_pyspark.FeatureStoreManager import FeatureStoreManager
+from feature_store_manager import FeatureStoreManager
 from pyspark.sql.functions import udf, datediff, to_date, lit, col,isnan, when, count
 from pyspark.sql.types import IntegerType, DoubleType, StructType, StructField, StringType, FloatType
 from pyspark.sql import SparkSession, DataFrame
@@ -20,6 +20,17 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
 
+def parse_args() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--num_processes', type=int, default=1)
+    parser.add_argument('--num_workers', type=int, default=1)
+    parser.add_argument('--feature_group_name', type=str)
+    parser.add_argument('--feature_group_arn', type=str)
+    parser.add_argument('--target_feature_store_list', type=str)
+    parser.add_argument('--s3_uri_prefix', type=str)
+    
+    args, _ = parser.parse_known_args()
+    return args
 
 def transform_row(row) -> list:
     columns = list(row.asDict())
@@ -65,19 +76,7 @@ def batch_ingest_to_feature_store(args: argparse.Namespace, df: DataFrame) -> No
     logger.info(f'Feature Ingestions successful!')
 
 
-def parse_args() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--num_processes', type=int, default=1)
-    parser.add_argument('--num_workers', type=int, default=1)
-    parser.add_argument('--feature_group_name', type=str)
-    parser.add_argument('--feature_group_arn', type=str)
-    parser.add_argument('--target_feature_store_list', type=str)
-    parser.add_argument('--s3_uri_prefix', type=str)
-    
-    args, _ = parser.parse_known_args()
-    return args
-
-def check_data_quality(df: DataFrame) -> DataFrame:
+def check_data(df: DataFrame) -> None:
     # Sanity checking secktion 
     logger.info(f'First 5 rows of the dataframe for inspection: {df.show(5)}')
 
@@ -125,32 +124,24 @@ def ordinal_encode_col(df: DataFrame, col_name: str) -> DataFrame:
 def run_spark_job():
 
     args = parse_args()
-    #add further packages as needed
-    pkg_list = []
-    pkg_list.append("software.amazon.sagemaker.featurestore:sagemaker-feature-store-spark-sdk_2.12:1.1.0")
-    packages=(",".join(pkg_list))
-
-    logger.info(f'Added the following packages to Spark: {packages}')
-
-    spark = SparkSession.builder.appName("PySparkJobFeatureStore") \
-        .config("spark.jars.packages", packages) \
-        .getOrCreate()
+   
+    spark = SparkSession.builder.getOrCreate()
     
     # set the legacy time parser policy to LEGACY to allow for parsing of dates in the format dd/MM/yyyy HH:mm:ss, which solves backwards compatibility issues to spark 2.4
     spark.sql("set spark.sql.legacy.timeParserPolicy=LEGACY")
 
-    logger.info(f'Using Spark-Version:{spark.version}')
+    logger.info(f'LOGGER: Using Spark-Version:{spark.version}')
 
     # get the total number of cores in the Spark cluster; if developing locally, there might be no executor
     try:
         spark_context = spark.sparkContext
         total_cores = int(spark_context._conf.get('spark.executor.instances')) * int(spark_context._conf.get('spark.executor.cores'))
-        logger.info(f'Total available cores in the Spark cluster = {total_cores}')
+        logger.info(f'LOGGER: Total available cores in the Spark cluster = {total_cores}')
     except:
         total_cores = 1
-        logger.info('Could not retrieve number of total cores. Setting total cores to 1')
+        logger.info('LOGGER: Could not retrieve number of total cores. Setting total cores to 1')
     
-    logger.info(f'Reading input file from S3. S3 uri is {args.s3_uri_prefix}')
+    logger.info(f'LOGGER: Reading input file from S3. S3 uri is {args.s3_uri_prefix}')
 
     # define the schema of the input data
     csvSchema = StructType([
@@ -166,8 +157,8 @@ def run_spark_job():
     # read the pyspark dataframe with a schema 
     df = spark.read.option("header", "true").schema(csvSchema).csv(args.s3_uri_prefix)  
     
-    # check the data quality of the dataframe and write findings to logs for inspection 
-    check_data_quality(df)
+    # check the data of the dataframe and write findings to logs for inspection 
+    check_data(df)
 
     # transform 1 - encode boolean to int
     df = ordinal_encode_col(df, 'is_reordered')
@@ -184,7 +175,7 @@ def run_spark_job():
     df = scale_col(df, 'n_days_since_last_purchase')
     
     
-    logger.info(f'Number of partitions = {df.rdd.getNumPartitions()}')
+    logger.info(f'LOGGER: Number of partitions = {df.rdd.getNumPartitions()}')
     # Rule of thumb heuristic - rely on the product of #executors by #executor.cores, and then multiply that by 3 or 4
     df = df.repartition(total_cores * 3)
     logger.info(f'Number of partitions after re-partitioning = {df.rdd.getNumPartitions()}')
