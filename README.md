@@ -69,3 +69,8 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
     * **Topics:**
        * Setup of granular access control to Offline Feature Store using AWS Lake Formation
        * Testing of the access control using SageMaker Feature Store SDK
+
+* **Module 10: Materialize Features from the Offline Store to the Online Store**
+    * **Topics:**
+        * Use the [Feature Store Spark Connector](https://docs.aws.amazon.com/sagemaker/latest/dg/batch-ingestion-spark-connector-setup.html) to ingest features directly to the offline store.
+        * Use the Feature Store Spark Connector to incrementally materialize the latest features to the online store.
