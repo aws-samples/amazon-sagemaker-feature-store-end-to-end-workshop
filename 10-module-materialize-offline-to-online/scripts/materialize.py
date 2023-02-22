@@ -7,7 +7,7 @@ import boto3
 from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
 import pyspark.sql.functions as F
-from feature_store_manager import FeatureStoreManager
+from feature_store_pyspark.FeatureStoreManager import FeatureStoreManager
 
 logger = logging.getLogger()
 

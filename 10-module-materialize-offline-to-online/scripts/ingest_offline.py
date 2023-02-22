@@ -5,7 +5,7 @@ using the Feature Store Spark Connector.
 import argparse
 import boto3
 from pyspark.sql import SparkSession
-from feature_store_manager import FeatureStoreManager
+from feature_store_pyspark.FeatureStoreManager import FeatureStoreManager
 
 
 def run(feature_group_name, region_name):
