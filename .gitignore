@@ -190,5 +190,5 @@ node_modules
 *.drawio
 notes.txt
 
-# ignore py_dependencies/
-py_dependencies/
+# ignore temp dir
+temp/
