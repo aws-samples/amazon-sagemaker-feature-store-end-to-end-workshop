@@ -15,7 +15,7 @@ In this sub-module, we provide an approach of how to implement granular access c
 * m9_01_nb2_row_cell_level_access_clean_up.ipynb
 
 
-### 09-02-fg-access-control-iam-policy-online-offline
+### 09-02-fg-iam-policy-enforcement
 In this sub-module, we provide an approach of how to use IAM policies and tags to govern the creation of Feature Groups (m9_02_nb1_control_fg_creation) and the access to online Feature Groups (m9_01_nb2_control_fg_online_access).
 
 #### Notebooks:
