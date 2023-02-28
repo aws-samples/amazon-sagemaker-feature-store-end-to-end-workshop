@@ -45,6 +45,7 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
         * Batch ingestion via SageMaker Processing job
         * Batch ingestion via SageMaker Processing PySpark job
         * SageMaker Data Wrangler export job to feature store
+        * Use the Feature Store Spark Connector to incrementally materialize the latest features to the online store.
 		
 * **Module 6: Automate feature engineering pipelines with Amazon SageMaker**
     * **Topics:**
@@ -69,8 +70,3 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
     * **Topics:**
        * Setup of granular access control to Offline Feature Store using AWS Lake Formation
        * Testing of the access control using SageMaker Feature Store SDK
-
-* **Module 10: Materialize Offline features to the Online store**
-    * **Topics:**
-        * Use the [Feature Store Spark Connector](https://docs.aws.amazon.com/sagemaker/latest/dg/batch-ingestion-spark-connector-setup.html) to ingest features directly to the offline store.
-        * Use the Feature Store Spark Connector to incrementally materialize the latest features to the online store.

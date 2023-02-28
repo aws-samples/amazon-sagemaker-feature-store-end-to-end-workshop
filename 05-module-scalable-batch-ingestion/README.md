@@ -6,3 +6,4 @@
 * Online ingestion via SageMaker Processing job (PySpark)
 * Offline batch injection using the Feature store spark connector
 * SageMaker Data Wrangler export job to FS
+* Materialize Offline features to the Online store
