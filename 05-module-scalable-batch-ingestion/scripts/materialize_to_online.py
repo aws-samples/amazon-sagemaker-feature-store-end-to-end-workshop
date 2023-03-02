@@ -16,6 +16,7 @@ def run(table_format, feature_group_name, region_name):
 
     sm_client = boto3.client("sagemaker", region_name=region_name)
     fg_desc = sm_client.describe_feature_group(FeatureGroupName=feature_group_name)
+    event_time_name = fg_desc["EventTimeFeatureName"]
 
     if table_format == "Iceberg":
 
@@ -56,19 +57,19 @@ def run(table_format, feature_group_name, region_name):
 
     # get latest records
     df = (
-        df.withColumn("event_time", F.to_timestamp("EventTime"))
+        df.withColumn("event_time_as_timestamp", F.to_timestamp(event_time_name))
         .withColumn(
             "rn",
             F.row_number().over(
                 Window.partitionBy("RecordIdentifier").orderBy(
-                    F.col("event_time").desc()
+                    F.col("event_time_as_timestamp").desc()
                 )
             ),
         )
         .filter(F.col("rn") == 1)
         .drop(
             "rn",
-            "event_time",
+            "event_time_as_timestamp",
             "api_invocation_time",
             "write_time",
             "is_deleted",
