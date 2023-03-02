@@ -17,6 +17,7 @@ def run(table_format, feature_group_name, region_name):
     sm_client = boto3.client("sagemaker", region_name=region_name)
     fg_desc = sm_client.describe_feature_group(FeatureGroupName=feature_group_name)
     event_time_name = fg_desc["EventTimeFeatureName"]
+    record_id_name = fg_desc["RecordIdentifierFeatureName"]
 
     if table_format == "Iceberg":
 
@@ -61,7 +62,7 @@ def run(table_format, feature_group_name, region_name):
         .withColumn(
             "rn",
             F.row_number().over(
-                Window.partitionBy("RecordIdentifier").orderBy(
+                Window.partitionBy(record_id_name).orderBy(
                     F.col("event_time_as_timestamp").desc()
                 )
             ),
