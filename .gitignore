@@ -189,3 +189,6 @@ node_modules
 *.zip
 *.drawio
 notes.txt
+
+# ignore temp dir
+temp/

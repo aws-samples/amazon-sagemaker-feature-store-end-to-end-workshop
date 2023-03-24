@@ -45,6 +45,7 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
         * Batch ingestion via SageMaker Processing job
         * Batch ingestion via SageMaker Processing PySpark job
         * SageMaker Data Wrangler export job to feature store
+        * Use the Feature Store Spark Connector to incrementally materialize the latest features to the online store.
 		
 * **Module 6: Automate feature engineering pipelines with Amazon SageMaker**
     * **Topics:**
