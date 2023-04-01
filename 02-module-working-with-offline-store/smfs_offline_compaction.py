@@ -12,7 +12,7 @@ def run_vacuum_query(athena, database, table, work_group, output_location):
     while not fully_completed:
         print(f"executing {vacuum_sql}")
         execution = athena.start_query_execution(
-            QueryString=optimize_sql, 
+            QueryString=vacuum_sql, 
             WorkGroup=work_group,
             ResultConfiguration={
             'OutputLocation': output_location,
