@@ -26,7 +26,10 @@ def read_df(s3_uri_csv_path):
 
     print(f'\nReading CSV file from S3 location: {s3_uri_csv_path}')
     df = spark_session.read.options(Header=True).csv(s3_uri_csv_path)
-    print(f'Done reading dataframe')
+    count = df.count()
+    print(f'\nDone reading dataframe, records: {count}')
+    
+    df.head(5)
     return df
 
 
