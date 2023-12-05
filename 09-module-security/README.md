@@ -23,7 +23,7 @@ In this sub-module, we provide an approach of how to use IAM policies and tags t
 * m9_01_nb2_control_fg_online_access.ipynb
 
 ### 09-03-cross-account-access
-In this sub-module, we provide an aproach of how to use a cross account feature store architecture with a central feature store situated on the admin/owner account. We show how to set dicoverability and access permissions to features groups on the admin/owner account and how to manipulate cross account features from a consumer account.
+In this sub-module, we provide an aproach of how to use a cross account feature store architecture with a central feature store situated on the admin/owner account. We show how to set discoverability and access permissions to features groups on the admin/owner account and how to manipulate cross account features from a consumer account.
 
 #### Notebooks:
 * m9_03_nb1_cross-account-admin.ipynb
