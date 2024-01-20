@@ -70,3 +70,8 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
     * **Topics:**
        * Setup of granular access control to Offline Feature Store using AWS Lake Formation
        * Testing of the access control using SageMaker Feature Store SDK
+     
+* **Module 10: Compliance**
+    * **Topics:**
+       * Hard Delete records from Feature Store using DeleteRecord API and Iceberg compaction procedures
+     
