@@ -72,7 +72,7 @@ def create_order_list_fg(feature_group_name, feature_store_session, role_arn):
 
     feature_group = FeatureGroup(name=feature_group_name, sagemaker_session=feature_store_session)
     feature_group.feature_definitions = get_feature_definitions_with_list()
-    fg = feature_group.create(
+    response = feature_group.create(
         s3_uri=False,
         record_identifier_name='order_id',
         event_time_feature_name='event_time',
@@ -80,4 +80,4 @@ def create_order_list_fg(feature_group_name, feature_store_session, role_arn):
         enable_online_store=True,
         online_store_storage_type=OnlineStoreStorageTypeEnum.IN_MEMORY,
     )
-    return fg
+    return response
