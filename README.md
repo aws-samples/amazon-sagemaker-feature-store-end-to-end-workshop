@@ -70,6 +70,7 @@ Cloning into '/home/sagemaker-user/workshops/amazon-sagemaker-feature-store-end-
     * **Topics:**
        * Setup of granular access control to Offline Feature Store using AWS Lake Formation
        * Testing of the access control using SageMaker Feature Store SDK
+       * Cross-account feature groups sharing using AWS Resource Access Manager
      
 * **Module 10: Compliance**
     * **Topics:**
