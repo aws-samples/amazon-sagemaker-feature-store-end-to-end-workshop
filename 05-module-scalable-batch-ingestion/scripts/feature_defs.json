@@ -1,35 +1,35 @@
-[        
+[
     {
-        'FeatureName': 'order_id',
-        'FeatureType': 'String'
+        "FeatureName": "order_id",
+        "FeatureType": "String"
     },
     {
-        'FeatureName': 'customer_id',
-        'FeatureType': 'String'
+        "FeatureName": "customer_id",
+        "FeatureType": "String"
     },
     {
-        'FeatureName': 'product_id',
-        'FeatureType': 'String'
+        "FeatureName": "product_id",
+        "FeatureType": "String"
     },
     {
-        'FeatureName': 'purchase_amount',
-        'FeatureType': 'Fractional'
+        "FeatureName": "purchase_amount",
+        "FeatureType": "Fractional"
     },
     {
-        'FeatureName': 'is_reordered',
-        'FeatureType': 'Integral'
+        "FeatureName": "is_reordered",
+        "FeatureType": "Integral"
     },
     {
-        'FeatureName': 'event_time',
-        'FeatureType': 'String'
+        "FeatureName": "event_time",
+        "FeatureType": "String"
     },
     {
-        'FeatureName': 'n_days_since_last_purchase',
-        'FeatureType': 'Fractional'
+        "FeatureName": "n_days_since_last_purchase",
+        "FeatureType": "Fractional"
     },
     {
-        'FeatureName': 'n_days_list',
-        'FeatureType': 'String',
-        'CollectionType': 'List'
+        "FeatureName": "n_days_list",
+        "FeatureType": "String",
+        "CollectionType": "List"
     }
 ]
