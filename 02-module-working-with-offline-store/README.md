@@ -26,3 +26,11 @@
 #### Notebook:
 * m2_nb3_offline_iceberg_compaction.ipynb
 
+### Offline Store SDK
+* Build ML-ready Datasets from one or more Feature Groups
+* Point-in-Time Joins, Event Time range, As-Of Timestamps
+* DatasetBuilder operations: generate CSV file, Pandas Dataframes
+
+#### Notebook:
+* m2_nb4_offline_store_sdk.ipynb
+
