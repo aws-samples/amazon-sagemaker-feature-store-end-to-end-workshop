@@ -52,18 +52,13 @@ def convert_timestamp_to_iso8601(timestamp):
     return datetime_iso8601
 
 
-def gen_new_records(sample_df, timestamps_df, num=1):
+def gen_new_records(sample_record, timestamps_df, num=1):
     print(f'> Generating {num} new records for time-series data ...')
     
-    sample_record = sample_df.iloc[0]
     sample_rec_id = sample_record['Lead_ProspectID']
     print(f'> New records using record_id: {sample_rec_id}')
     
-    # Create new dataframe and drop existing record
-    new_records = pd.DataFrame(data=sample_df)
-    for irec, rec in new_records.iterrows():
-        new_records.drop(irec,axis=0,inplace=True)
-    
+    new_records = []
     for iter in range(num):
         # create copy of sample record
         new_rec = sample_record.copy(deep=True)
@@ -75,10 +70,20 @@ def gen_new_records(sample_df, timestamps_df, num=1):
         new_rec['Lead_EventTime'] = ts_rec['Timestamp']
         fields = ['LeadSource', 'Lead_EventTime']
         dump_record(new_rec, fields)
-        # Add new sample record to dataframe
-        new_records = new_records.append(new_rec, ignore_index=True)
+        # Append new sample record to list
+        new_records.append(new_rec)
+        
+    new_rec_df = pd.DataFrame(new_records)
+    #print(f'Initial new records DF: {new_rec_df.shape} types: {new_rec_df.dtypes}')
     
-    return new_records
+    eventtime_df = new_rec_df['Lead_EventTime']
+    #print(f'eventtime_df: {eventtime_df.shape} types: {eventtime_df.dtypes}')
+
+    new_rec_df.drop(columns=['Lead_EventTime'])
+    new_rec_df['Lead_EventTime'] = pd.Series(eventtime_df, dtype="object")
+    
+    #print(f'Final new records DF: {new_rec_df.shape} types: {new_rec_df.dtypes}')
+    return new_rec_df
 
 
 def dump_record(record, fields):
