@@ -1,5 +1,3 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: MIT-0
 
     import json
     import boto3
@@ -24,7 +22,7 @@
         #Update values for where Data Wrangler .flow is saved
         flow_bucket = 'sagemaker-us-east-1-572539092864'
         flow_key = 'sagemaker-feature-store/fscw/data_wrangler_flows/DWF-Orders.flow'
-        pipeline_name = 'featurestore-ingest-pipeline-12-14-08-07'
+        pipeline_name = 'featurestore-ingest-pipeline-20-18-41-16'
         execution_display = f"{data_key.split('/')[-1].replace('_','').replace('.csv','')}"
 
 

@@ -165,7 +165,7 @@ def create_lambda(fcn_name, fcn_code, role_arn):
     print('Creating AWS Lambda function ...')
     new_fcn = lambda_client.create_function(
             FunctionName=fcn_name,
-            Runtime='python3.8',
+            Runtime='python3.10',
             Role=role_arn,
             Handler='lambda_function.lambda_handler',
             Code=dict(ZipFile=fcn_code),
